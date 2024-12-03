@@ -81,9 +81,30 @@ function alertPrize(indicatedSegment) {
     spinSound.pause();
     spinSound.currentTime = 0;  // Reset the audio to beginning
 
-    // Do basic alert of the segment text
-    alert("The winner is: " + indicatedSegment.text);
-    resetWheel();
+    // Get the modal elements
+    const modal = document.getElementById('winnerModal');
+    const winnerText = document.getElementById('winnerText');
+    const closeBtn = modal.querySelector('.close');
+
+    // Set the winner text
+    winnerText.textContent = "The winner is: " + indicatedSegment.text;
+
+    // Show the modal
+    modal.style.display = "block";
+
+    // Close modal functionality
+    closeBtn.onclick = function() {
+        modal.style.display = "none";
+        resetWheel();
+    }
+
+    // Click outside modal to close
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+            resetWheel();
+        }
+    }
 }
 
 // =======================================================================================================================
