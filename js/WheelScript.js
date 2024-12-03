@@ -29,9 +29,9 @@ function randomizeSegments() {
             // Google's response comes with some extra characters that need to be removed
             const jsonData = JSON.parse(data.substring(47).slice(0, -2));
             
-            // Extract names from the parsed data (assuming names are in the first column)
+            // Extract names from the parsed data (changed from index 0 to index 1 for second column)
             const names = jsonData.table.rows
-                .map(row => row.c[0].v)
+                .map(row => row.c[1].v)  // Changed from [0] to [1] to get the name column
                 .filter(name => name && name.length > 0);
 
             // Create segments from names
