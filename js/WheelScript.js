@@ -17,52 +17,53 @@ let theWheel = new Winwheel({
 });
 
 function randomizeSegments() {
-    // Fetch the CSV file
-    $.ajax({
-        url: 'resources/names.csv',
-        dataType: 'text',
-        success: function(data) {   
-            // Use PapaParse to parse the CSV data
-            Papa.parse(data, {
-                complete: function(results) {
-                    // Extract names from the parsed data
-                    const names = results.data.flat().filter(name => name.length > 0);
+    // Google Sheets URL - replace with your sheet's ID and sheet name
+    const SHEET_ID = '1unWYe7i9onPnHwMla9D2basSm1i5xOBcZvln-jiVtEk';
+    const SHEET_NAME = 'Form Responses 1';
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
 
-                    // Create segments from names
-                    const segments = names.map(name => ({
-                        fillStyle: '#' + Math.floor(Math.random() * 16777215).toString(16),
-                        text: name,
-                        id: Math.floor(Math.random() * Date.now())
-                    }));
+    // Fetch the Google Sheet data
+    fetch(SHEET_URL)
+        .then(response => response.text())
+        .then(data => {
+            // Google's response comes with some extra characters that need to be removed
+            const jsonData = JSON.parse(data.substring(47).slice(0, -2));
+            
+            // Extract names from the parsed data (assuming names are in the first column)
+            const names = jsonData.table.rows
+                .map(row => row.c[0].v)
+                .filter(name => name && name.length > 0);
 
-                    // Update wheel configuration
-                    theWheel = new Winwheel({
-                        'numSegments': segments.length,
-                        'outerRadius': WHEEL_RADIUS,
-                        'textFontSize': TEXT_FONT_SIZE,
-                        'segments': segments.sort(() => Math.random() - 0.5),
-                        'animation': {
-                            'type': 'spinToStop',
-                            'duration': 15,
-                            'spins': 8,
-                            'callbackFinished': alertPrize,
-                        }
-                    });
+            // Create segments from names
+            const segments = names.map(name => ({
+                fillStyle: '#' + Math.floor(Math.random() * 16777215).toString(16),
+                text: name,
+                id: Math.floor(Math.random() * Date.now())
+            }));
 
-                    // Update nameList for the sidebar
-                    nameList = theWheel.segments
-                        .filter(segment => segment != null)
-                        .sort((a, b) => sortNames(a, b));
-
-                    // Render the names in the sidebar
-                    nameList.forEach(name => renderNames(name));
-                },
-                error: function(error) {
-                    console.error('Error parsing CSV:', error);
+            // Update wheel configuration
+            theWheel = new Winwheel({
+                'numSegments': segments.length,
+                'outerRadius': WHEEL_RADIUS,
+                'textFontSize': TEXT_FONT_SIZE,
+                'segments': segments.sort(() => Math.random() - 0.5),
+                'animation': {
+                    'type': 'spinToStop',
+                    'duration': 15,
+                    'spins': 8,
+                    'callbackFinished': alertPrize,
                 }
             });
-        }
-    });
+
+            // Update nameList for the sidebar
+            nameList = theWheel.segments
+                .filter(segment => segment != null)
+                .sort((a, b) => sortNames(a, b));
+
+            // Render the names in the sidebar
+            nameList.forEach(name => renderNames(name));
+        })
+        .catch(error => console.error('Error fetching sheet data:', error));
 }
 
 // Call randomizeSegments when the page loads
