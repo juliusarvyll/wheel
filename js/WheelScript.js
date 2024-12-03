@@ -1,5 +1,7 @@
 const WHEEL_RADIUS = 400;
 const TEXT_FONT_SIZE = 50;
+const WINNERS_KEY = 'wheelWinners';
+const MEMBERS_KEY = 'wheelMembers';
 
 // Create new wheel object specifying the parameters at creation time.
 let theWheel = new Winwheel({
@@ -62,6 +64,9 @@ function randomizeSegments() {
 
             // Render the names in the sidebar
             nameList.forEach(name => renderNames(name));
+
+            // After creating segments and updating wheel, save to localStorage
+            localStorage.setItem(MEMBERS_KEY, JSON.stringify(nameList));
         })
         .catch(error => console.error('Error fetching sheet data:', error));
 }
@@ -69,6 +74,16 @@ function randomizeSegments() {
 // Call randomizeSegments when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     randomizeSegments();
+
+    // Add reset button to your HTML
+    const resetButton = document.createElement('button');
+    resetButton.textContent = 'Reset All Members';
+    resetButton.className = 'reset-all-btn';
+    resetButton.onclick = resetAllMembers;
+    document.querySelector('.your-controls-container').appendChild(resetButton);
+
+    // Initial display of winners
+    displayWinners();
 });
 
 // -------------------------------------------------------
@@ -105,6 +120,25 @@ function alertPrize(indicatedSegment) {
             resetWheel();
         }
     }
+
+    // Save winner to localStorage
+    const winners = JSON.parse(localStorage.getItem(WINNERS_KEY) || '[]');
+    winners.push({
+        name: indicatedSegment.text,
+        timestamp: new Date().toISOString()
+    });
+    localStorage.setItem(WINNERS_KEY, JSON.stringify(winners));
+
+    // Remove winner from nameList
+    const winnerIndex = nameList.findIndex(item => item.text === indicatedSegment.text);
+    if (winnerIndex > -1) {
+        nameList.splice(winnerIndex, 1);
+        localStorage.setItem(MEMBERS_KEY, JSON.stringify(nameList));
+        renderWheel();
+    }
+
+    // After saving to localStorage, update the winners display
+    displayWinners();
 }
 
 // =======================================================================================================================
@@ -132,6 +166,13 @@ function startSpin() {
         wheelSpinning = true;
     }
 }
+
+// Add event listener for Enter key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        startSpin();
+    }
+});
 
 // -------------------------------------------------------
 // Function for reset button.
@@ -305,5 +346,44 @@ for (i = 0; i < coll.length; i++) {
         } else {
             content.style.display = "block";
         }
+    });
+}
+
+// Add this new function to reset all members
+function resetAllMembers() {
+    if (confirm('Are you sure you want to reset all members? This will clear all winners and reload the original list.')) {
+        // Clear winners
+        localStorage.removeItem(WINNERS_KEY);
+        
+        // Reset members by calling randomizeSegments
+        randomizeSegments();
+        
+        // Reset the wheel
+        resetWheel();
+        displayWinners(); // Refresh the winners display
+    }
+}
+
+function displayWinners() {
+    const winnersList = document.getElementById('winners-list');
+    const winners = JSON.parse(localStorage.getItem(WINNERS_KEY) || '[]');
+    
+    winnersList.innerHTML = '';
+    
+    if (winners.length === 0) {
+        winnersList.innerHTML = '<li>No winners yet!</li>';
+        return;
+    }
+
+    winners.reverse().forEach(winner => {
+        const li = document.createElement('li');
+        const date = new Date(winner.timestamp);
+        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        
+        li.innerHTML = `
+            <span class="winner-name">${winner.name}</span>
+            <span class="winner-timestamp">${formattedDate}</span>
+        `;
+        winnersList.appendChild(li);
     });
 }
