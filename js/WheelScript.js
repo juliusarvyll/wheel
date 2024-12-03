@@ -100,12 +100,43 @@ function alertPrize(indicatedSegment) {
     const modal = document.getElementById('winnerModal');
     const winnerText = document.getElementById('winnerText');
     const closeBtn = modal.querySelector('.close');
+    const savePrizeBtn = document.getElementById('savePrizeBtn');
+    const prizeInput = document.getElementById('prizeInput');
 
     // Set the winner text
     winnerText.textContent = "The winner is: " + indicatedSegment.text;
 
     // Show the modal
     modal.style.display = "block";
+    prizeInput.value = ''; // Clear any previous prize input
+    prizeInput.focus(); // Focus the prize input
+
+    // Save prize and winner
+    savePrizeBtn.onclick = function() {
+        const prize = prizeInput.value.trim();
+        
+        // Save winner to localStorage
+        const winners = JSON.parse(localStorage.getItem(WINNERS_KEY) || '[]');
+        winners.push({
+            name: indicatedSegment.text,
+            prize: prize,
+            timestamp: new Date().toISOString()
+        });
+        localStorage.setItem(WINNERS_KEY, JSON.stringify(winners));
+
+        // Remove winner from nameList
+        const winnerIndex = nameList.findIndex(item => item.text === indicatedSegment.text);
+        if (winnerIndex > -1) {
+            nameList.splice(winnerIndex, 1);
+            localStorage.setItem(MEMBERS_KEY, JSON.stringify(nameList));
+            renderWheel();
+        }
+
+        // Close modal and reset
+        modal.style.display = "none";
+        resetWheel();
+        displayWinners();
+    };
 
     // Close modal functionality
     closeBtn.onclick = function() {
@@ -120,25 +151,6 @@ function alertPrize(indicatedSegment) {
             resetWheel();
         }
     }
-
-    // Save winner to localStorage
-    const winners = JSON.parse(localStorage.getItem(WINNERS_KEY) || '[]');
-    winners.push({
-        name: indicatedSegment.text,
-        timestamp: new Date().toISOString()
-    });
-    localStorage.setItem(WINNERS_KEY, JSON.stringify(winners));
-
-    // Remove winner from nameList
-    const winnerIndex = nameList.findIndex(item => item.text === indicatedSegment.text);
-    if (winnerIndex > -1) {
-        nameList.splice(winnerIndex, 1);
-        localStorage.setItem(MEMBERS_KEY, JSON.stringify(nameList));
-        renderWheel();
-    }
-
-    // After saving to localStorage, update the winners display
-    displayWinners();
 }
 
 // =======================================================================================================================
@@ -381,7 +393,10 @@ function displayWinners() {
         const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
         
         li.innerHTML = `
-            <span class="winner-name">${winner.name}</span>
+            <div class="winner-info">
+                <span class="winner-name">${winner.name}</span>
+                ${winner.prize ? `<span class="winner-prize">(Prize: ${winner.prize})</span>` : ''}
+            </div>
             <span class="winner-timestamp">${formattedDate}</span>
         `;
         winnersList.appendChild(li);
