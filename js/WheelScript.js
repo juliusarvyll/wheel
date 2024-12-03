@@ -164,6 +164,15 @@ let wheelSpinning = false;
 // Click handler for spin button.
 // -------------------------------------------------------
 function startSpin() {
+    const prizeInput = document.getElementById('prizeInput');
+    
+    // Check if prize is entered
+    if (!prizeInput.value.trim()) {
+        alert('Please enter a prize before spinning!');
+        prizeInput.focus();
+        return;
+    }
+
     // Ensure that spinning can't be clicked again while already running.
     if (wheelSpinning == false) {
         // Play the spin sound
@@ -182,7 +191,10 @@ function startSpin() {
 // Add event listener for Enter key
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Enter') {
-        startSpin();
+        const prizeInput = document.getElementById('prizeInput');
+        if (document.activeElement !== prizeInput) { // Only trigger spin if we're not typing in the prize input
+            startSpin();
+        }
     }
 });
 
@@ -394,10 +406,59 @@ function displayWinners() {
         
         li.innerHTML = `
             <div class="winner-info">
-                <span class="winner-name">${winner.name}</span>
-                ${winner.prize ? `<span class="winner-prize">(Prize: ${winner.prize})</span>` : ''}
+                <strong>${winner.name}</strong>
+                ${winner.prize ? `<div class="prize">Prize: ${winner.prize}</div>` : ''}
+                <div class="timestamp">${formattedDate}</div>
             </div>
-            <span class="winner-timestamp">${formattedDate}</span>
+        `;
+        winnersList.appendChild(li);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Collapsible menu functionality
+    const menuButton = document.querySelector('.collapsible-button');
+    const menuContent = document.querySelector('.menu-content');
+    
+    menuButton.addEventListener('click', function() {
+        this.classList.toggle('active');
+        if (menuContent.style.display === 'block') {
+            menuContent.style.display = 'none';
+            this.textContent = 'Menu ▼';
+        } else {
+            menuContent.style.display = 'block';
+            this.textContent = 'Menu ▲';
+        }
+    });
+
+    // Initialize other functionality
+    document.querySelector('.reset-all-btn').onclick = resetAllMembers;
+    displayWinners();
+});
+
+// Update displayWinners function to include timestamps
+function displayWinners() {
+    const winnersList = document.getElementById('winners-list');
+    const winners = JSON.parse(localStorage.getItem(WINNERS_KEY) || '[]');
+    
+    winnersList.innerHTML = '';
+    
+    if (winners.length === 0) {
+        winnersList.innerHTML = '<li>No winners yet!</li>';
+        return;
+    }
+
+    winners.reverse().forEach(winner => {
+        const li = document.createElement('li');
+        const date = new Date(winner.timestamp);
+        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        
+        li.innerHTML = `
+            <div class="winner-info">
+                <strong>${winner.name}</strong>
+                ${winner.prize ? `<div class="prize">Prize: ${winner.prize}</div>` : ''}
+                <div class="timestamp">${formattedDate}</div>
+            </div>
         `;
         winnersList.appendChild(li);
     });

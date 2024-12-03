@@ -25,23 +25,35 @@
         </div>
     </div>
 
-    <div class="names-container">
-        <button type="button" class="collapsible-button">+</button>
-        <div class="content">
-            <form class="js-form">
-                <input autofocus type="text" aria-label="Enter a name to add" placeholder="Enter a name to add"
-                    class="js-name-input">
-            </form>
-            <ul class="todo-list js-name-list"></ul>
-            <div class="empty-state">
+    <div class="controls-menu">
+        <button type="button" class="collapsible-button">Menu ▼</button>
+        <div class="menu-content">
+            <div class="menu-section">
+                <h3>Add Names</h3>
+                <form class="js-form">
+                    <input type="text" aria-label="Enter a name to add" placeholder="Enter a name to add"
+                        class="js-name-input">
+                </form>
+                <ul class="todo-list js-name-list"></ul>
+                <div class="empty-state"></div>
             </div>
-            <button class="reset-all-btn">Reset All Members</button>
-        </div>
-    </div>
-    <div class="winners-section">
-        <button class="collapsible-button">Previous Winners</button>
-        <div class="winners-content">
-            <ul id="winners-list" class="winners-list"></ul>
+
+            <div class="menu-section">
+                <h3>Spin Controls</h3>
+                <div class="prize-controls">
+                    <input type="text" id="prizeInput" placeholder="Enter prize for this spin" class="prize-input">
+                    <button onclick="startSpin();" class="spin-button">Spin</button>
+                </div>
+            </div>
+            
+            <div class="menu-section">
+                <h3>Previous Winners</h3>
+                <ul id="winners-list" class="winners-list"></ul>
+            </div>
+            
+            <div class="menu-section">
+                <button class="reset-all-btn">Reset All Members</button>
+            </div>
         </div>
     </div>
     <script type="text/javascript" src="js/WheelScript.js"></script>
@@ -53,10 +65,6 @@
             <span class="close">&times;</span>
             <h2>We Have a Winner!</h2>
             <p id="winnerText"></p>
-            <div class="prize-input-container">
-                <input type="text" id="prizeInput" placeholder="Enter prize description">
-                <button id="savePrizeBtn">Save Winner & Prize</button>
-            </div>
         </div>
     </div>
 </body>
