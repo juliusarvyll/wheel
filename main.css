@@ -462,3 +462,12 @@ input[type="text"] {
     max-height: 80vh; /* Limit maximum height to 80% of viewport height */
     overflow-y: auto; /* Make scrollable if content is too long */
 }
+
+.menu-content {
+    display: none;
+    padding: 10px;
+}
+
+.collapsible-button.active {
+    background-color: #555;
+}

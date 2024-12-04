@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="main.css" type="text/css">
     <script type="text/javascript" src="js/Winwheel.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
 </head>
 <!--v1.0.7-->
 
@@ -59,12 +60,44 @@
     <script type="text/javascript" src="js/WheelScript.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const collapsible = document.querySelector('.collapsible-button');
+            collapsible.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const content = this.nextElementSibling;
+                if (content.style.display === 'block') {
+                    content.style.display = 'none';
+                    this.innerHTML = 'Menu ▼';
+                } else {
+                    content.style.display = 'block';
+                    this.innerHTML = 'Menu ▲';
+                }
+            });
+
+            // Add modal close functionality
+            const modal = document.getElementById('winnerModal');
+            const closeBtn = document.querySelector('.close');
+            
+            closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+
+            // Optional: Close modal when clicking outside of it
+            window.addEventListener('click', function(event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
     <audio id="spinSound" src="resources/spin-sound.mp3" preload="auto"></audio>
     <div id="winnerModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>We Have a Winner!</h2>
             <p id="winnerText"></p>
+            <p id="prizeText"></p>
         </div>
     </div>
 </body>

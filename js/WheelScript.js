@@ -28,15 +28,19 @@ function randomizeSegments() {
     fetch(SHEET_URL)
         .then(response => response.text())
         .then(data => {
-            // Google's response comes with some extra characters that need to be removed
+            // Google's response comes with extra characters that need to be removed
             const jsonData = JSON.parse(data.substring(47).slice(0, -2));
             
-            // Extract names from the parsed data (changed from index 0 to index 1 for second column)
+            // Get previous winners
+            const winners = JSON.parse(localStorage.getItem(WINNERS_KEY) || '[]');
+            const winnerNames = winners.map(winner => winner.name);
+            
+            // Extract names from the parsed data, excluding previous winners
             const names = jsonData.table.rows
                 .map(row => row.c[1].v)  // Changed from [0] to [1] to get the name column
-                .filter(name => name && name.length > 0);
+                .filter(name => name && name.length > 0 && !winnerNames.includes(name));
 
-            // Create segments from names
+            // Create segments from remaining names
             const segments = names.map(name => ({
                 fillStyle: '#' + Math.floor(Math.random() * 16777215).toString(16),
                 text: name,
@@ -47,7 +51,9 @@ function randomizeSegments() {
             theWheel = new Winwheel({
                 'numSegments': segments.length,
                 'outerRadius': WHEEL_RADIUS,
-                'textFontSize': TEXT_FONT_SIZE,
+                'textFontSize': calculateFontSize(segments.length),
+                'textOrientation': 'horizontal',
+                'textAlignment': 'center',
                 'segments': segments.sort(() => Math.random() - 0.5),
                 'animation': {
                     'type': 'spinToStop',
@@ -62,10 +68,12 @@ function randomizeSegments() {
                 .filter(segment => segment != null)
                 .sort((a, b) => sortNames(a, b));
 
-            // Render the names in the sidebar
+            // Clear and re-render the names in the sidebar
+            const namesList = document.querySelector('.js-name-list');
+            namesList.innerHTML = '';
             nameList.forEach(name => renderNames(name));
 
-            // After creating segments and updating wheel, save to localStorage
+            // Save to localStorage
             localStorage.setItem(MEMBERS_KEY, JSON.stringify(nameList));
         })
         .catch(error => console.error('Error fetching sheet data:', error));
@@ -80,7 +88,15 @@ document.addEventListener('DOMContentLoaded', () => {
     resetButton.textContent = 'Reset All Members';
     resetButton.className = 'reset-all-btn';
     resetButton.onclick = resetAllMembers;
-    document.querySelector('.your-controls-container').appendChild(resetButton);
+    
+    // Find an existing container or create one if needed
+    let controlsContainer = document.querySelector('.controls-container');
+    if (!controlsContainer) {
+        controlsContainer = document.createElement('div');
+        controlsContainer.className = 'controls-container';
+        document.body.appendChild(controlsContainer);
+    }
+    controlsContainer.appendChild(resetButton);
 
     // Initial display of winners
     displayWinners();
@@ -91,66 +107,53 @@ document.addEventListener('DOMContentLoaded', () => {
 // note the indicated segment is passed in as a parmeter as 99% of the time you will want to know this to inform the user of their prize.
 // -------------------------------------------------------
 function alertPrize(indicatedSegment) {
+    // Initialize JSConfetti
+    const jsConfetti = new JSConfetti();
+
     // Stop the spinning sound
     const spinSound = document.getElementById('spinSound');
     spinSound.pause();
-    spinSound.currentTime = 0;  // Reset the audio to beginning
+    spinSound.currentTime = 0;
 
     // Get the modal elements
     const modal = document.getElementById('winnerModal');
     const winnerText = document.getElementById('winnerText');
+    const prizeText = document.getElementById('prizeText');
     const closeBtn = modal.querySelector('.close');
-    const savePrizeBtn = document.getElementById('savePrizeBtn');
     const prizeInput = document.getElementById('prizeInput');
+    const prize = prizeInput.value.trim();
 
-    // Set the winner text
-    winnerText.textContent = "The winner is: " + indicatedSegment.text;
+    // Set the winner and prize text
+    winnerText.textContent = `The winner is: ${indicatedSegment.text}`;
+    prizeText.textContent = `Prize: ${prize}`;
 
-    // Show the modal
+    // Show the modal and trigger confetti
     modal.style.display = "block";
-    prizeInput.value = ''; // Clear any previous prize input
-    prizeInput.focus(); // Focus the prize input
+    jsConfetti.addConfetti({
+        emojis: ['🎉', '🎊', '✨', '⭐', '🌟'],
+        emojiSize: 70,
+        confettiNumber: 500,
+    });
 
-    // Save prize and winner
-    savePrizeBtn.onclick = function() {
-        const prize = prizeInput.value.trim();
-        
-        // Save winner to localStorage
-        const winners = JSON.parse(localStorage.getItem(WINNERS_KEY) || '[]');
-        winners.push({
-            name: indicatedSegment.text,
-            prize: prize,
-            timestamp: new Date().toISOString()
-        });
-        localStorage.setItem(WINNERS_KEY, JSON.stringify(winners));
+    // Save winner immediately
+    const winners = JSON.parse(localStorage.getItem(WINNERS_KEY) || '[]');
+    winners.push({
+        name: indicatedSegment.text,
+        prize: prize,
+        timestamp: new Date().toISOString()
+    });
+    localStorage.setItem(WINNERS_KEY, JSON.stringify(winners));
 
-        // Remove winner from nameList
-        const winnerIndex = nameList.findIndex(item => item.text === indicatedSegment.text);
-        if (winnerIndex > -1) {
-            nameList.splice(winnerIndex, 1);
-            localStorage.setItem(MEMBERS_KEY, JSON.stringify(nameList));
-            renderWheel();
-        }
-
-        // Close modal and reset
-        modal.style.display = "none";
-        resetWheel();
-        displayWinners();
-    };
-
-    // Close modal functionality
-    closeBtn.onclick = function() {
-        modal.style.display = "none";
-        resetWheel();
+    // Remove winner from nameList
+    const winnerIndex = nameList.findIndex(item => item.text === indicatedSegment.text);
+    if (winnerIndex > -1) {
+        nameList.splice(winnerIndex, 1);
+        localStorage.setItem(MEMBERS_KEY, JSON.stringify(nameList));
+        renderWheel();
     }
 
-    // Click outside modal to close
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-            resetWheel();
-        }
-    }
+    // Update display
+    displayWinners();
 }
 
 // =======================================================================================================================
@@ -177,6 +180,7 @@ function startSpin() {
     if (wheelSpinning == false) {
         // Play the spin sound
         const spinSound = document.getElementById('spinSound');
+        spinSound.currentTime = 0;  // Reset audio to start
         spinSound.play();
 
         // Begin the spin animation by calling startAnimation on the wheel object.
@@ -208,9 +212,30 @@ function resetWheel() {
     spinSound.currentTime = 0;
 
     theWheel.stopAnimation(false);  // Stop the animation, false as param so does not call callback function.
-    theWheel.rotationAngle = 0;     // Re-set the wheel angle to 0 degrees.
-    theWheel.draw();                // Call draw to render changes to the wheel.
-    wheelSpinning = false;          // Reset to false to power buttons and spin can be clicked again.
+    
+    // Recreate the wheel with current segments
+    theWheel = new Winwheel({
+        'numSegments': nameList.length,
+        'outerRadius': WHEEL_RADIUS,
+        'textFontSize': calculateFontSize(nameList.length),
+        'textOrientation': 'horizontal',
+        'textAlignment': 'center',
+        'segments': nameList,
+        'animation': {
+            'type': 'spinToStop',
+            'duration': 15,
+            'spins': 8,
+            'callbackFinished': alertPrize,
+        }
+    });
+
+    wheelSpinning = false;  // Reset to false so power buttons and spin can be clicked again.
+
+    // Clear the prize input
+    const prizeInput = document.getElementById('prizeInput');
+    if (prizeInput) {
+        prizeInput.value = '';
+    }
 }
 
 
@@ -271,18 +296,20 @@ function renderNames(todo) {
 // -------------------------------------------------------
 function renderWheel() {
     theWheel = new Winwheel({
-        'numSegments': nameList.length,     // Specify number of segments.
-        'outerRadius': WHEEL_RADIUS,   // Set outer radius so wheel fits inside the background.
-        'textFontSize': TEXT_FONT_SIZE,    // Set font size as desired.
+        'numSegments': nameList.length,
+        'outerRadius': WHEEL_RADIUS,
+        'textFontSize': calculateFontSize(nameList.length),
+        'textOrientation': 'horizontal',
+        'textAlignment': 'center',
         'segments': nameList,
-        'animation':           // Specify the animation to use.
-        {
+        'animation': {
             'type': 'spinToStop',
             'duration': 15,
             'spins': 8,
             'callbackFinished': alertPrize,
         }
     });
+    wheelSpinning = false;  // Reset to false so power buttons and spin can be clicked again.
 }
 
 // -------------------------------------------------------
@@ -462,4 +489,17 @@ function displayWinners() {
         `;
         winnersList.appendChild(li);
     });
+}
+
+// Add this function to calculate font size
+function calculateFontSize(numSegments) {
+    // Base size for few segments (adjust these values to your preference)
+    const baseSize = 16;
+    const minSize = 6;  // Minimum readable font size
+    
+    // Exponential reduction as segments increase
+    let fontSize = baseSize * Math.exp(-numSegments/100);
+    
+    // Ensure font size doesn't go below minimum
+    return Math.max(fontSize, minSize);
 }
